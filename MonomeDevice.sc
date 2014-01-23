@@ -16,7 +16,7 @@ MonomeDevice : OSCHandler {
 
 	makeOSCpath { |msg|
 		var toSend;
-		if(msg@0 == "/",
+		if(msg.at(0) == "/",
 			toSend = prefix ++ "/" ++ type ++ msg,
 			toSend = prefix ++ "/" ++ type ++ "/" ++ msg);
 		^toSend;
