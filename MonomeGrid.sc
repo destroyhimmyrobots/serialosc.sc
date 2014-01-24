@@ -3,7 +3,7 @@ MonomeGrid : MonomeDevice {
 	var <rows, <cols, <gridState, <tiltHistory;
 
 	*new { |argServer, argID, /* argPostfix, */ argKeyFx, argTiltFx, argLEDFx|
-		[ argServer, argID, argPostfix ].postln;
+		[ argServer, argID, "grid" ].postln;
 		^super.new.init(argServer, argID, "grid", argKeyFx, argTiltFx, argLEDFx);
 	}
 

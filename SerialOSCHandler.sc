@@ -29,23 +29,18 @@ SerialOSCHandler : OSCHandler {
 		port  = msg.at(3).asInt;
 		devAt = NetAddr.new(server.hostname, port);
 
-		case
-		{ type.containsi("arc")    == true } {
-			(	this.class.asString
-				++ ":\tDiscovered Arc  "
-				++ id ++ "@"
-				++ server.hostname ++ ":" ++ port ++ "."
+		if(type.containsi("arc") == true, {
+			(this.class.asString
+				++ ":\tDiscovered Arc  " ++ id ++ "@" ++ server.hostname ++ ":" ++ port ++ "."
 			).postln;
 			this.addDevice(MonomeArc.new(devAt, id, nil, nil, nil));
-		}
-		{ type.containsi("monome") == true } {
+		});
+		if(type.containsi("monome") == true, {
 			(this.class.asString
-				++ ":\tDiscovered Grid "
-				++ id ++ "@"
-				++ server.hostname ++ ":" ++ port ++ "."
+				++ ":\tDiscovered Grid " ++ id ++ "@" ++ server.hostname ++ ":" ++ port ++ "."
 			).postln;
 			this.addDevice(MonomeGrid.new(devAt, id, nil, nil, nil));
-		};
+		});
 	}
 
 	removeDevice { |msg|
