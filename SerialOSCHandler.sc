@@ -2,23 +2,24 @@ SerialOSCHandler : OSCHandler {
 	var <deviceSet;
 
 	*new {
-		^super.new.serialOSCHandlerInit(NetAddr.new("localhost", 12002));
+		^super.new.init;
 	}
 
-	serialOSCHandlerInit { |sa|
-		super.oscHandlerInit(sa);
+	init {
+		super.init(NetAddr.new("localhost", 12002));
 		deviceSet = Set.new;
 		oscResponders.addAll(this.recv);
+		"Initialized a SerialOSCHandler".postln;
 		this.requestNotify;
-		this.listDevices;
+		/* this.listDevices; */
 	}
 
 	listDevices {
-		this.send(["/serialosc/list", clientAddr.hostname, clientAddr.port]);
+		this.send(["/serialosc/list", client.hostname, client.port]);
 	}
 
 	requestNotify {
-		this.send(["/serialosc/notify", clientAddr.hostname, clientAddr.port]);
+		this.send(["/serialosc/notify", client.hostname, client.port]);
 	}
 
 	handleListedDevice { |msg|
@@ -26,24 +27,24 @@ SerialOSCHandler : OSCHandler {
 		id    = msg.at(1).asString;
 		type  = msg.at(2).asString;
 		port  = msg.at(3).asInt;
-		devAt = NetAddr.new(serverAddr.hostname.asString, port);
+		devAt = NetAddr.new(server.hostname, port);
 
 		case
 		{ type.containsi("arc")    == true } {
 			(	this.class.asString
 				++ ":\tDiscovered Arc  "
 				++ id ++ "@"
-				++ serverAddr.hostname.asString ++ ":" ++ port.asString ++ "."
+				++ server.hostname ++ ":" ++ port ++ "."
 			).postln;
-			this.addDevice(MonomeArc.new(id, devAt));
+			this.addDevice(MonomeArc.new(devAt, id, nil, nil, nil));
 		}
 		{ type.containsi("monome") == true } {
 			(this.class.asString
 				++ ":\tDiscovered Grid "
 				++ id ++ "@"
-				++ serverAddr.hostname.asString ++ ":" ++ port.asString ++ "."
+				++ server.hostname ++ ":" ++ port ++ "."
 			).postln;
-			this.addDevice(MonomeGrid.new(id, devAt));
+			this.addDevice(MonomeGrid.new(devAt, id, nil, nil, nil));
 		};
 	}
 
@@ -72,16 +73,16 @@ SerialOSCHandler : OSCHandler {
 	recv {
 		var d, a, r;
 		d = OSCFunc.newMatching(
-			{ |msg, time, fromAddr, recvdOnPort| this.handleListedDevice(msg); },
-			'/serialosc/device');
+			{ |msg, time, addr, recvPort| this.handleListedDevice(msg); },
+			'/serialosc/device', server, client.port, nil);
 
 		a = OSCFunc.newMatching(
-			{ |msg, time, fromAddr, recvdOnPort| this.handleListedDevice(msg); },
-			'/serialosc/remove', clientAddr.hostname, clientAddr.port);
+			{ |msg, time, addr, recvPort| this.handleListedDevice(msg); },
+			'/serialosc/remove', server.hostname, client.port, nil);
 
 		r = OSCFunc.newMatching(
-			{ |msg, time, fromAddr, recvdOnPort| this.removeDevice(msg); },
-			'/serialosc/add', clientAddr.hostname, clientAddr.port);
+			{ |msg, time, addr, recvPort| this.removeDevice(msg); },
+			'/serialosc/add', server.hostname, client.port, nil);
 
 		^[d, a, r];
 	}

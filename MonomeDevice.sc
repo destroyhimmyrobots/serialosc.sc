@@ -1,15 +1,17 @@
 MonomeDevice : OSCHandler {
-	var <id, <type;
-	var <prefix, <host, <port, <size, <rot;
+	var <id, <postfix;
+	var <prefix, <size, <rot, <devicePort;
 
-	*new { |id, type, sa|
-		^super.new.monomeDeviceInit(id, type, sa);
+	*new { |argServer, argID, argPostfix|
+		^super.new.init(argServer, argID, argPostfix);
 	}
 
-	monomeDeviceInit { |iid, itype, sa|
-		super.oscHandlerInit(sa);
-		id   = iid;
-		type = itype;
+	init { |argServer, argID, argPostfix|
+		super.init(argServer);
+		id      = argID;
+		postfix = argPostfix;
+		"Initialized a MonomeDevice.".postln;
+
 		oscResponders.addAll(this.recv);
 		this.sysInfo;
 	}
@@ -17,36 +19,37 @@ MonomeDevice : OSCHandler {
 	makeOSCpath { |msg|
 		var toSend;
 		if(msg.at(0) == "/",
-			toSend = prefix ++ "/" ++ type ++ msg,
-			toSend = prefix ++ "/" ++ type ++ "/" ++ msg);
+			toSend = prefix ++ "/" ++ postfix ++ msg,
+			toSend = prefix ++ "/" ++ postfix ++ "/" ++ msg);
 		^toSend;
 	}
 
 	// =====================================================================
+
 	recv {
 		var r_id, r_port, r_prefix, r_rot, r_sz;
 
 		r_id     = OSCFunc.newMatching(
-			{ |msg, time, fromAddr, recvdOnPort| id     = msg.at(1).asInt; },
-			'/sys/id', clientAddr.hostname,	clientAddr.port);
+			{ |msg, time, fromAddr, recvdOnPort| id         = msg.at(1).asInt; },
+			'/sys/id', server,	client.port, nil);
 		r_port   = OSCFunc.newMatching(
-			{ |msg, time, fromAddr, recvdOnPort| port   = msg.at(1).asInt; },
-			'/sys/port', clientAddr.hostname, clientAddr.port);
+			{ |msg, time, fromAddr, recvdOnPort| devicePort = msg.at(1).asInt; },
+			'/sys/port', server, client.port, nil);
 		r_prefix = OSCFunc.newMatching(
 			{ |msg, time, fromAddr, recvdOnPort| prefix = msg.at(1).asString; },
-			'/sys/prefix', clientAddr.hostname,	clientAddr.port);
+			'/sys/prefix', server,	client.port, nil);
 		r_rot    = OSCFunc.newMatching(
 			{ |msg, time, fromAddr, recvdOnPort| rot    = msg.at(1).asInt; },
-			'/sys/rotation', clientAddr.hostname, clientAddr.port);
+			'/sys/rotation', server, client.port, nil);
 		r_sz     = OSCFunc.newMatching(
 			{ |msg, time, fromAddr, recvdOnPort| size   = [msg.at(1).asInt, msg.at(2).asInt]; },
-			'/sys/size', clientAddr.hostname, clientAddr.port);
+			'/sys/size', server, client.port, nil);
 
 		^[r_id, r_port, r_prefix, r_rot, r_sz];
 	}
 
 	sysInfo {
-		this.send(["sys/info", clientAddr.hostname, clientAddr.port]);
+		this.send(["sys/info", client.hostname, client.port]);
 	}
 
 	// =====================================================================
@@ -56,6 +59,7 @@ MonomeDevice : OSCHandler {
 			this.send(["sys/rotation", r]);
 			rot = r;
 		);
+		this.sysInfo;
 	}
 
 	prefix_ { |p|
@@ -64,33 +68,37 @@ MonomeDevice : OSCHandler {
 		);
 		this.send(["sys/prefix", p]);
 		prefix = p;
+		this.sysInfo;
 	}
 
-	port_ { |p|
+	devicePort_ { |p|
 		if(p > 1025 && p < 65536,
 			this.send(["sys/port", p]);
-			clientAddr.port_(p);
+			devicePort = p;
 		);
+		this.sysInfo;
 	}
 
 	host_ { |h|
 		this.send(["sys/host", h]);
-		clientAddr.hostname_(h);
+		client.hostname_(h);
+		this.sysInfo;
 	}
 
 	// =====================================================================
+
 	printOn { arg stream;
-		stream << "MonomeDevice( " << type << ", " << type << ", " << rot << ")";
+		stream << "MonomeDevice( " << postfix << ", " << postfix << ", " << rot << ")";
 	}
 
 	// for asCompileString.
 	storeOn { arg stream;
-		stream << "MonomeDevice.new(" << id << ", \"" << type << "\", " << serverAddr.asCompileString << ", " << ")";
+		stream << "MonomeDevice.new(" << id << ", \"" << postfix << "\", " << server.asCompileString << ", " << ")";
 	}
 
 	// Arguments to Monome.new
 	storeArgs { arg stream;
-		^[id, type, serverAddr];
+		^[server, id, postfix];
 	}
 
 	doesNotUnderstand { arg selector...args;
@@ -100,4 +108,4 @@ MonomeDevice : OSCHandler {
 			(this.class.asString ++ ":\tUGen recognizes method " ++ selector);
 		}
 	}
-} 
+}

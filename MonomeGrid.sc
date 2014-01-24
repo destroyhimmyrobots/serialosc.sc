@@ -1,44 +1,45 @@
 MonomeGrid : MonomeDevice {
-	var <rows, <cols, <gridState, <tiltHistory;
 	var <>keyHandler, <>tiltHandler, <>ledHandler;
+	var <rows, <cols, <gridState, <tiltHistory;
 
-	*new { |newID, newSA, keyFx, tiltFx, ledFx|
-		// How can we get this.var = var to work without requiring use of class getter/setters?
-		^super.new.monomeGridInit(newID, "grid", newSA, keyFx, tiltFx, ledFx);
+	*new { |argServer, argID, /* argPostfix, */ argKeyFx, argTiltFx, argLEDFx|
+		[ argServer, argID, argPostfix ].postln;
+		^super.new.init(argServer, argID, "grid", argKeyFx, argTiltFx, argLEDFx);
 	}
 
-	monomeGridInit { |newID, newType, newSA, keyFx, tiltFx, ledFx|
-		// Renaming these init methods is displeasing.
-		super.monomeDeviceInit(newID, newType, newSA);
+	init { arg argServer, argID, argPostfix, argKeyFx, argTiltFx, argLEDFx;
+		[ argServer, argID, argPostfix ].postln;
+		super.init(argServer, argID, argPostfix);
 
 		oscResponders.addAll(this.recv);
 		this.tiltSet(0, 0);
 		gridState = Array2D.new(rows, cols);
 
-		if(tiltFx.isNil
-			, tiltHandler = this.defaultTiltHandler;
-			, tiltHandler = tiltFx );
-		if(keyFx .isNil
-			, keyHandler = this.defaultKeyHandler;
-			, keyHandler = keyFx  );
-		if(ledFx .isNil
-			, ledHandler = this.defaultLEDHandler;
-			, ledHandler = ledFx  );
+		if(argTiltFx.isNil
+			, { tiltHandler = this.defaultTiltHandler; }
+			, { tiltHandler = argTiltFx; } );
+		if(argKeyFx.isNil
+			, { keyHandler = this.defaultKeyHandler; }
+			, { keyHandler = argKeyFx; } );
+		if(argLEDFx.isNil
+			, { ledHandler = this.defaultLEDHandler; }
+			, { ledHandler = argLEDFx; } );
 	}
 
 	recv {
-		var r_sz, r_key, r_tilt;
+		var r_key, r_tilt;
 
 		r_key = OSCFunc.newMatching(
 			{ |msg, time, fromAddr, recvdOnPort|
 				keyHandler( msg.at(1).asInt, msg.at(2).asInt, msg.at(3).asInt );
-		}, (prefix ++ "/grid/key").asSymbol, clientAddr.hostname, clientAddr.port);
+		}, (prefix ++ "/grid/key").asSymbol, server, client.port, nil);
+
 		r_tilt = OSCFunc.newMatching(
 			{ |msg, time, fromAddr, recvdOnPort|
 				tiltHandler(msg.at(1).asFloat, msg.at(2).asFloat, msg.at(3).asFloat, msg.at(4).asFloat);
-		}, (prefix ++ "/tilt").asSymbol, clientAddr.hostname, clientAddr.port);
+		}, (prefix ++ "/tilt").asSymbol, server, client.port, nil);
 
-		^[r_sz, r_key, r_tilt];
+		^[r_key, r_tilt];
 	}
 
 	// Overrides MonomeDevice.setSize(int)

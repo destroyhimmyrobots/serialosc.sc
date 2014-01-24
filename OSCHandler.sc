@@ -1,15 +1,16 @@
 OSCHandler {
-	/* Need to fix the need for internal setters for this.x = y */
-	var <serverAddr, <clientAddr, <oscResponders;
+	var <server, <client, <oscResponders;
 
-	*new { |sa|
-		^super.new.oscHandlerInit(sa);
+	*new { |argServer|
+		^super.new.init(argServer);
 	}
 
-	oscHandlerInit { |sa|
-		serverAddr    = sa;
-		clientAddr    = this.makeClientAddr;
+	init { |argServer|
+		server        = argServer;
+		/* Unfortunately, an actual parent port (whole object?) is created below. */
+		client        = this.makeClient;
 		oscResponders = List.new;
+		"Initialized an OSCHandler".postln;
 	}
 
 	closeOSCResponders {
@@ -21,40 +22,35 @@ OSCHandler {
 
 	close {
 		this.closeOSCResponders;
-		serverAddr.disconnect;
-		clientAddr.disconnect;
+		server.disconnect;
+		client.disconnect;
 	}
 
-	makeClientAddr {
-		var listenAddr;
+	makeClient {
 		var udpOK = false;
 		var udptries = 0;
 		var clientPort = -1;
 
-		while( { udpOK.not && (udptries < 10) }, {
+		while({ (udpOK == false) && (udptries < 10) }, {
 			clientPort = rrand(1025, 65535);
 			udpOK      = thisProcess.openUDPPort(clientPort);
 			udptries   = udptries + 1;
 		});
 
-		if(udpOK.not,
-			clientPort = NetAddr.langPort);
-
 		(	this.class.asString
 			++ ":\tListening for SerialOSC messages on "
-			++ NetAddr.localAddr.hostname.asString
-			++ ":" ++ clientPort.asString ++ "."
+			++ NetAddr.localAddr.hostname ++ ":" ++ clientPort ++ "."
 		).postln;
 
-		^NetAddr.new(NetAddr.localAddr.hostname, clientPort);
+		if(udpOK == false, { clientPort = NetAddr.langPort } );
+
+		^NetAddr.new(NetAddr.localAddr.hostname.asString, clientPort);
 	}
 
-	recv {
-		// Intentionally Left Blank
-	}
+	recv { /* Intentionally Left Blank */ }
 
 	send { |msg|
 		/* Hack for passing arrays to this wrapper function. */
-		serverAddr.sendRaw(msg.asRawOSC);
+		server.sendRaw(msg.asRawOSC);
 	}
 }
