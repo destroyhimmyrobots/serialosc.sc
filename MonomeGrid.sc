@@ -4,12 +4,12 @@ MonomeGrid : MonomeDevice {
 
 	*new { |argServer, argID, /* argPostfix, */ argKeyFx, argTiltFx, argLEDFx|
 		[ argServer, argID, "grid" ].postln;
-		^super.new.init(argServer, argID, "grid", argKeyFx, argTiltFx, argLEDFx);
+		^super.new.gridInit(argServer, argID, "grid", argKeyFx, argTiltFx, argLEDFx);
 	}
 
-	init { arg argServer, argID, argPostfix, argKeyFx, argTiltFx, argLEDFx;
-		[ argServer, argID, argPostfix ].postln;
-		super.init(argServer, argID, argPostfix);
+	gridInit { |argServer, argID, argPostfix, argKeyFx, argTiltFx, argLEDFx|
+		[ argServer, argID, argPostfix, argKeyFx, argTiltFx, argLEDFx ].postln;
+		super.deviceInit(argServer, argID, argPostfix);
 
 		oscResponders.addAll(this.recv);
 		this.tiltSet(0, 0);

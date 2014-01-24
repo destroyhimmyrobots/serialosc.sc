@@ -3,10 +3,10 @@ MonomeDevice : OSCHandler {
 	var <prefix, <size, <rot, <devicePort;
 
 	*new { |argServer, argID, argPostfix|
-		^super.new.init(argServer, argID, argPostfix);
+		^super.new.deviceInit(argServer, argID, argPostfix);
 	}
 
-	init { |argServer, argID, argPostfix|
+	deviceInit { |argServer, argID, argPostfix|
 		super.init(argServer);
 		id      = argID;
 		postfix = argPostfix;
