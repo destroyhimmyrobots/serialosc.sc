@@ -2,28 +2,28 @@ MonomeGrid : MonomeDevice {
 	var <>keyHandler, <>tiltHandler, <>ledHandler;
 	var <rows, <cols, <gridState, <tiltHistory;
 
-	*new { |argServer, argID, /* argPostfix, */ argKeyFx, argTiltFx, argLEDFx|
-		[ argServer, argID, "grid" ].postln;
-		^super.new.gridInit(argServer, argID, "grid", argKeyFx, argTiltFx, argLEDFx);
+	*new { |argServer, argKeyFx = nil, argTiltFx =  nil, argLEDFx = nil|
+		^super.new(argServer, "grid").init(argServer, argKeyFx, argTiltFx, argLEDFx);
 	}
 
-	gridInit { |argServer, argID, argPostfix, argKeyFx, argTiltFx, argLEDFx|
-		[ argServer, argID, argPostfix, argKeyFx, argTiltFx, argLEDFx ].postln;
-		super.deviceInit(argServer, argID, argPostfix);
-
-		oscResponders.addAll(this.recv);
+	init { |argServer, argKeyFx = nil, argTiltFx =  nil, argLEDFx = nil|
+		super.init(argServer, "grid");
+		oscHandler.addResponders(this.recv);
 		this.tiltSet(0, 0);
-		gridState = Array2D.new(rows, cols);
+		gridState = Array2D.new(8, 8);
 
+		/* There is probably a better way to do a pointer to a function. */
 		if(argTiltFx.isNil
-			, { tiltHandler = this.defaultTiltHandler; }
+			, { tiltHandler = { |n, p, r, i | this.defaultTiltHandler(n, p, r, i); } }
 			, { tiltHandler = argTiltFx; } );
 		if(argKeyFx.isNil
-			, { keyHandler = this.defaultKeyHandler; }
+			, { keyHandler =  { |x, y, s| this.defaultKeyHandler(x, y, s); } }
 			, { keyHandler = argKeyFx; } );
 		if(argLEDFx.isNil
-			, { ledHandler = this.defaultLEDHandler; }
+			, { ledHandler =  { |x, y, i| this.defaultLEDHandler(x, y, i); } }
 			, { ledHandler = argLEDFx; } );
+
+		"Initialized a MonomeGrid.".postln;
 	}
 
 	recv {
@@ -32,21 +32,22 @@ MonomeGrid : MonomeDevice {
 		r_key = OSCFunc.newMatching(
 			{ |msg, time, fromAddr, recvdOnPort|
 				keyHandler( msg.at(1).asInt, msg.at(2).asInt, msg.at(3).asInt );
-		}, (prefix ++ "/grid/key").asSymbol, server, client.port, nil);
+		}, (prefix ++ "/grid/key").asSymbol, oscHandler.server, oscHandler.client.port, nil);
 
 		r_tilt = OSCFunc.newMatching(
 			{ |msg, time, fromAddr, recvdOnPort|
 				tiltHandler(msg.at(1).asFloat, msg.at(2).asFloat, msg.at(3).asFloat, msg.at(4).asFloat);
-		}, (prefix ++ "/tilt").asSymbol, server, client.port, nil);
+		}, (prefix ++ "/tilt").asSymbol, oscHandler.server, oscHandler.client.port, nil);
 
 		^[r_key, r_tilt];
 	}
 
 	// Overrides MonomeDevice.setSize(int)
+	// setSize creates a new state array.
 	setSize { |msg|
-		super.setSize(msg);
-		rows = msg.at(0).asInt;
-		cols = msg.at(1).asInt;
+		rows = msg.at(1).asInt;
+		cols = msg.at(2).asInt;
+		gridState = Array2D.new(rows, cols);
 		size = rows * cols;
 	}
 
@@ -68,11 +69,11 @@ MonomeGrid : MonomeDevice {
 	}
 
 	ledAll { |s|
-		this.send([this.makeOSCpath("led/all"), s]);
+		oscHandler.send([this.makeOSCpath("led/all"), s]);
 	}
 
 	ledSet { |x, y, s|
-		this.send([this.makeOSCpath("led/set"), x, y, s]);
+		oscHandler.send([this.makeOSCpath("led/set"), x, y, s]);
 	}
 
 	ledCol { |col, map|
@@ -83,26 +84,35 @@ MonomeGrid : MonomeDevice {
 
 	// ?
 	ledIntensity { |i|
-		this.send([this.makeOSCpath("led/intensity"), i]);
+		oscHandler.send([this.makeOSCpath("led/intensity"), i]);
 	}
 
 	ledLevel { |x, y, i|
-		this.send([this.makeOSCpath("led/level/set"), x, y, i]);
+		oscHandler.send([this.makeOSCpath("led/level/set"), x, y, i]);
 	}
 
 	ledLevelAll { |i|
-		this.send([this.makeOSCpath("led/level/all"), i]);
+		oscHandler.send([this.makeOSCpath("led/level/all"), i]);
 	}
 
 	ledLevelRow { |x_off, y_off, i|
-		this.send([this.makeOSCpath("/led/level/set"), x_off, y_off, i]);
+		oscHandler.send([this.makeOSCpath("/led/level/set"), x_off, y_off, i]);
 	}
 
 	tiltSet { |id, s|
-		this.send([this.makeOSCpath("/tilt/set"), id, s]);
+		oscHandler.send([this.makeOSCpath("/tilt/set"), id, s]);
 	}
 
-	storeArgs { arg stream;
-		^super.storeArgs(stream).add(gridState);
+	printOn { arg stream;
+		stream << "MonomeGrid("
+		<< "\n\t  osc:\t\t"   << oscHandler.asString
+		<< "\n\t, id:\t\t"    << id
+		<< "\n\t, post:\t\t"  << postfix
+		<< "\n\t, pre:\t\t"   << prefix
+		<< "\n\t, s:\t\t\t"   << size
+		<< "\n\t, r:\t\t\t"   << rot
+		<< "\n\t, keyFx:\t\t" << keyHandler
+		<< "\n\t, tiltFx:\t"  << tiltHandler
+		<< "\n\t, ledFx:\t\t" << ledHandler << ")";
 	}
 }

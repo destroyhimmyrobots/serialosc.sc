@@ -47,10 +47,21 @@ OSCHandler {
 		^NetAddr.new(NetAddr.localAddr.hostname.asString, clientPort);
 	}
 
-	recv { /* Intentionally Left Blank */ }
+	addResponders { |argArray|
+		oscResponders.addAll(argArray);
+	}
+
+	recv {
+		this.subclassResponsibility(thisMethod);
+	}
 
 	send { |msg|
-		/* Hack for passing arrays to this wrapper function. */
-		server.sendRaw(msg.asRawOSC);
+		/* Hack for passing arrays to this wrapper function is: sendRaw(msg.asRawOSC). */
+		/* Here we use 'collection as arguments to f' notation. */
+		server.sendMsg(*msg);
+	}
+
+	printOn { arg stream;
+		stream << "OSCHandler(server: " << server.asString << ", client: " << client.asString << /* ", " << oscResponders.asString << */ ")";
 	}
 }
