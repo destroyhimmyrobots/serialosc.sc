@@ -12,43 +12,56 @@ MonomeGrid : MonomeDevice {
 	}
 
 	gridInit { arg argKeyFx = nil, argTiltFx =  nil, argLEDFx = nil;
-		this.tiltSet(0, 0);
 		gridState = Array2D.new(8, 8);
 
 		/* There is probably a better way to do a pointer to a function. */
 		if(argTiltFx.isNil
-			, { tiltHandler = { |id, pitch, roll, inv| [id, pitch, roll, inv].postln; }; }
+			, { tiltHandler = { |id, pitch, roll, inv, o| [id, pitch, roll, inv].postln; }; }
 			, { tiltHandler = argTiltFx; } );
 		if(argKeyFx.isNil
-			, { keyHandler = { |x, y, s|
+			, { keyHandler = { |x, y, s, o|
 				[x, y, s].postln;
 				this.updateGridState(x, y, s);
 				this.ledHandler(x, y, s); }; }
 			, { keyHandler = argKeyFx; } );
 		if(argLEDFx.isNil
-			, { ledHandler = { |x, y, i| this.ledSet(x, y, (i != 0)); }; }
+			, { ledHandler = { |x, y, i, o| this.ledSet(x, y, (i != 0).asInt); }; }
 			, { ledHandler = argLEDFx; } );
 	}
 
 	showReady {
-		Task({ 3.do({ 1.wait; this.ledAll(1); 1.wait; this.ledAll(0); }) }).play;
+		Task({ 3.do({ 0.2.wait; this.ledAll(1); 0.2.wait; this.ledAll(0); }) }).play;
 	}
 
 	whenReadyAction {
 		var r_key, r_tilt;
 
+		this.tiltSet(0, 0);
+
 		r_key = OSCFunc.newMatching({ |msg, time, fromAddr, recvdOnPort|
-				msg.postln;
-				// this.keyHandler( msg.at(1).asInt, msg.at(2).asInt, msg.at(3).asInt );
-		}, (prefix ++ "/grid/key").asSymbol, oscHandler.server, oscHandler.client.port, nil);
+			this.keyHandler(
+				msg.at(1).asInt,
+				msg.at(2).asInt,
+				msg.at(3).asInt,
+				this);
+			}
+			, (prefix ++ "/grid/key").asSymbol
+			, oscHandler.server
+			, oscHandler.client.port
+			, nil);
 
 		r_tilt = OSCFunc.newMatching({ |msg, time, fromAddr, recvdOnPort|
-				this.tiltHandler(
-					msg.at(1).asInt,
-					msg.at(2).asFloat,
-					msg.at(3).asFloat,
-					msg.at(4).asFloat);
-		}, (prefix ++ "/tilt").asSymbol, oscHandler.server, oscHandler.client.port, nil);
+			this.tiltHandler(
+				msg.at(1).asInt,
+				msg.at(2).asFloat,
+				msg.at(3).asFloat,
+				msg.at(4).asFloat,
+				this);
+			}
+			, '/monome/tilt' /* (prefix ++ "/tilt").asSymbol */
+			, oscHandler.server
+			, oscHandler.client.port
+			, nil);
 
 		oscHandler.addResponders([r_key, r_tilt]);
 		this.showReady;

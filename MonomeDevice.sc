@@ -45,9 +45,7 @@ MonomeDevice {
 	}
 
 	makeOSCpath { |msg|
-		var toSend;
-		if(msg.at(0) == "/", { toSend = prefix ++ msg; }, { toSend = prefix ++ "/" ++ msg; });
-		^toSend;
+		^(msg.beginsWith("/")).if({ prefix ++ msg; }, { prefix ++ "/" ++ msg; });
 	}
 
 	close {
