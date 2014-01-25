@@ -1,17 +1,31 @@
 SerialOSCHandler {
-	var oscHandler, deviceLL;
+	var oscHandler, <devices;
 
 	*new {
 		^super.new.init;
 	}
 
 	init {
+		devices    = Dictionary.new;
 		oscHandler = OSCHandler.new(NetAddr.new("localhost", 12002));
-		deviceLL = LinkedList.new;
+
 		oscHandler.addResponders(this.recv);
 		this.requestNotify;
 		this.listDevices;
-		"Initialized a SerialOSCHandler".postln;
+	}
+
+	at { |k| ^devices.at(k); }
+
+	size { ^devices.size; }
+
+	close {
+		devices.values.do({ |dev, i|
+			dev.close;
+		});
+		oscHandler.close;
+		devices.makeEmpty;
+		/* devices = dictionary.new; */
+		(this.class.asString ++ ": closed all open devices.").postln;
 	}
 
 	listDevices {
@@ -23,53 +37,28 @@ SerialOSCHandler {
 	}
 
 	handleListedDevice { |msg|
-		var id, type, port, devAt;
+		var id, type, port, devAt, m;
 		id    = msg.at(1).asString;
 		type  = msg.at(2).asString;
 		port  = msg.at(3).asInt;
 		devAt = NetAddr.new(oscHandler.server.hostname, port);
 
-		if(type.containsi("arc") == true, {
-			(this.class.asString
-				++ ":\tDiscovered Arc  " ++ id ++ "@" ++ oscHandler.server.hostname ++ ":" ++ port ++ "."
-			).postln;
-
-		});
-		if(type.containsi("monome") == true, {
-			(this.class.asString
-				++ ":\tDiscovered Grid " ++ id ++ "@" ++ oscHandler.server.hostname ++ ":" ++ port ++ "."
-			).postln;
-			this.addListedDevice(MonomeGrid.new(devAt, nil, nil, nil));
-		});
+		if(type.containsi("arc")    == true, { m = MonomeArc .new(devAt, type, nil, nil     ); });
+		if(type.containsi("monome") == true, { m = MonomeGrid.new(devAt, type, nil, nil, nil); });
+		devices.removeAt(id.asSymbol);
+		devices.put(id.asSymbol, m);
+		(this.class.asString ++ ": added " ++ id ++ ".").postln;
 	}
 
 	removeDevice { |msg|
 		var id;
-		id  = msg@1;
-		deviceLL.do({ |obj, idx|
-			if(obj.id.compare(id) == 0, deviceLL.removeAt(idx));
-		});
-	}
-
-	addListedDevice { |newDevice|
-		var found, newID;
-		found = false;
-		newID = newDevice.id;
-
-		deviceLL.do({ |dev, idx|
-			if( dev.id.compare(newID) == 0, { found = true; } );
-		});
-
-		if( found == false,	{
-			deviceLL.add(newDevice);
-			("Added device " ++ newDevice.asString).postln;
-		});
-
-		^found.not;
+		id  = msg.at(1).asString;
+		devices.removeAt(id);
+		(this.class.asString ++ ": removed " ++ id ++ ".").postln;
 	}
 
 	recv {
-		var d, a, r;
+		var d, a, r, w;
 		d = OSCFunc.newMatching(
 			{ |msg, time, addr, recvPort| this.handleListedDevice(msg); },
 			'/serialosc/device', oscHandler.server, oscHandler.client.port, nil);
@@ -82,16 +71,19 @@ SerialOSCHandler {
 			{ |msg, time, addr, recvPort| this.removeDevice(msg); },
 			'/serialosc/add', oscHandler.server, oscHandler.client.port, nil);
 
-		^[d, a, r];
+		w = OSCFunc.newMatching(
+			{ |msg, time, addr, recvPort| this.handleReady(msg); },
+			'/monomedevice/register', NetAddr.localAddr, NetAddr.langPort, nil);
+
+		^[d, a, r, w];
 	}
 
-	deviceLL {
-		deviceLL.do({ |obj, i|
-			i.postln;
-		});
+	handleReady { |msg|
+		var k, t; k = msg.at(1).asString; t = msg.at(2).asString;
+		(this.class.asString ++ ": " ++ k ++ " (" ++ t ++ ") is ready.").postln;
 	}
 
 	printOn { arg stream;
-		stream << "SerialOSCHandler(" << "\n\t, osc: " << oscHandler << "\n\t, dev: " << deviceLL << ")";
+		stream << "SerialOSCHandler(" << "osc: " << oscHandler << ", dev: " << devices << ")";
 	}
 }

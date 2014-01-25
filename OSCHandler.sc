@@ -1,23 +1,23 @@
 OSCHandler {
-	var <server, <client, <oscResponders;
+	var <>server, <>client, <oscResponders;
 
-	*new { |argServer|
+	*new { arg argServer;
 		^super.new.init(argServer);
 	}
 
-	init { |argServer|
+	init { arg argServer;
 		server        = argServer;
-		/* Unfortunately, an actual parent port (whole object?) is created below. */
 		client        = this.makeClient;
-		oscResponders = List.new;
-		"Initialized an OSCHandler".postln;
+		oscResponders = Set.new;
 	}
 
 	closeOSCResponders {
 		oscResponders.do({ |obj, i|
+			obj.clear;
 			obj.free;
 		});
-		oscResponders.removeAll;
+		oscResponders.makeEmpty;
+		/* oscResponders = Set.new; */
 	}
 
 	close {
@@ -36,11 +36,6 @@ OSCHandler {
 			udpOK      = thisProcess.openUDPPort(clientPort);
 			udptries   = udptries + 1;
 		});
-
-		(	this.class.asString
-			++ ":\tListening for SerialOSC messages on "
-			++ NetAddr.localAddr.hostname ++ ":" ++ clientPort ++ "."
-		).postln;
 
 		if(udpOK == false, { clientPort = NetAddr.langPort } );
 
@@ -62,6 +57,6 @@ OSCHandler {
 	}
 
 	printOn { arg stream;
-		stream << "OSCHandler(server: " << server.asString << ", client: " << client.asString << /* ", " << oscResponders.asString << */ ")";
+		stream << "OSCHandler(server: " << server.asString << ", client: " << client.asString << ")" /* << "\n" << oscResponders.asString << "\n\n" */;
 	}
 }
