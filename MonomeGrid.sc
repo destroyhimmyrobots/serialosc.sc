@@ -36,6 +36,11 @@ MonomeGrid : MonomeDevice {
 		}).play;
 	}
 
+	close {
+		this.ledAll(0);
+		super.close;
+	}
+
 	animation {
 		Task({
 			Int16Array.series(256).do({ |int, i|

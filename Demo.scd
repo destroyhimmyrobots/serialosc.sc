@@ -4,8 +4,10 @@
  */
 
 (
-/* Set this before starting */
 var devID, t;
+
+/* Set this before starting!
+ * You can get your deviceID from the Max/MSP serialosc.maxpat. */
 devID = \m0001021;
 
 t = Task({
@@ -14,7 +16,7 @@ t = Task({
 	/* Let's listen for monome devices! */
 	devices = SerialOSCHandler.new;
 
-	/* Let me get a direct reference to a grid. */
+	/* Now I will get a direct reference to my grid. */
 	1.wait;	grid = devices[devID];
 
 	/* Tilt can be turned on and off. */
@@ -45,31 +47,18 @@ t = Task({
 		});
 	};
 
-	/* You can write a tilt handler or a
-	 * led handler in a similar fashion.
-	 * Maybe I will make examples later. */
+	/* You can write a tilt or led handler in a similar fashion.
+	 * You can call the functions from each other, as above. */
 	5.wait; grid.keyHandler = newKeyFx;
-	"Try pressing keys now.".postln;
+	"Now, keys will stay lit. Try pressing a few keys.".postln;
 
 	/* Before reinstantiating a new SerialOSCHandler,
 	* or before terminating your program, close the
 	* current SerialOSCHandler. */
-	5.wait; devices.close;
+	5.wait;
+	grid.ledAll(0);
+	devices.close;
 });
 
 t.play;
 )
-
-(
-/* Let's listen for monome devices! */
-d = SerialOSCHandler.new;
-)
-/* Let me get a direct reference to a grid. */
-grid = d[\m0001021];
-grid.animation;
-grid.rot_(0);
-grid.ledSet(0, 9, 1);
-grid.ledSet(0, 9, 0);
-grid.gridState;
-
-grid.rows;

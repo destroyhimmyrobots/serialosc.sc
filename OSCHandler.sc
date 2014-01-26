@@ -1,3 +1,8 @@
+/* OSCHandler.sc
+ * Author: Marc J. Szalkiewicz
+ * Date:   2014 Jan 25
+ */
+
 OSCHandler {
 	var <>server, <>client, <oscResponders;
 

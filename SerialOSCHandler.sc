@@ -1,3 +1,8 @@
+/* SerialOSCHandler.sc
+ * Author: Marc J. Szalkiewicz
+ * Date:   2014 Jan 25
+ */
+
 SerialOSCHandler {
 	var oscHandler, <devices;
 
