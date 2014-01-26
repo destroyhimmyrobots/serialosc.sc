@@ -25,7 +25,7 @@ SerialOSCHandler {
 
 	close {
 		devices.values.do({ |dev, i| dev.close; });
-		devices.makeEmpty; /* devices = dictionary.new; */
+		devices.makeEmpty; /* devices = Dictionary.new; */
 		oscHandler.close;
 		(this.class.asString ++ ": all connections closed.").postln;
 	}

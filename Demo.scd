@@ -56,6 +56,7 @@ t = Task({
 	* or before terminating your program, close the
 	* current SerialOSCHandler. */
 	5.wait;
+	grid.ledAll(0); // This is a "bug." it should be handled by devices.close.
 	devices.close;
 });
 
