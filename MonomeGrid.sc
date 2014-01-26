@@ -12,25 +12,41 @@ MonomeGrid : MonomeDevice {
 	}
 
 	gridInit { arg argKeyFx = nil, argTiltFx =  nil, argLEDFx = nil;
-		gridState = Array2D.new(8, 8);
+		gridState = Int16Array(256); //Array2D.new(8, 8);
 
-		/* There is probably a better way to do a pointer to a function. */
-		if(argTiltFx.isNil
-			, { tiltHandler = { |id, pitch, roll, inv, o| [id, pitch, roll, inv].postln; }; }
-			, { tiltHandler = argTiltFx; } );
-		if(argKeyFx.isNil
-			, { keyHandler = { |x, y, s, o|
-				[x, y, s].postln;
-				this.updateGridState(x, y, s);
-				this.ledHandler(x, y, s); }; }
-			, { keyHandler = argKeyFx; } );
-		if(argLEDFx.isNil
-			, { ledHandler = { |x, y, i, o| this.ledSet(x, y, (i != 0).asInt); }; }
-			, { ledHandler = argLEDFx; } );
+		tiltHandler = (argTiltFx.isNil).if({
+			{ |id, pitch, roll, inv, o = nil| [id, pitch, roll, inv].postln; };
+		}, { argTiltFx; });
+
+		ledHandler = (argLEDFx.isNil).if({
+			{ |x, y, s, o = nil| this.ledSet(x, y, s); };
+		}, { argLEDFx; } );
+
+		keyHandler = (argKeyFx.isNil).if({
+			{ |x, y, s, o = nil|
+				this.setGridState(x, y, s);
+				this.ledHandler.value(x, y, s);
+			};
+		}, { argKeyFx; } );
 	}
 
 	showReady {
-		Task({ 3.do({ 0.2.wait; this.ledAll(1); 0.2.wait; this.ledAll(0); }) }).play;
+		Task({
+			2.do({ 0.1.wait; this.ledAll(1); 0.1.wait; this.ledAll(0); });
+		}).play;
+	}
+
+	animation {
+		Task({
+			Int16Array.series(256).do({ |int, i|
+				Int8Array.series(rows).do({ |r, j|
+					this.ledCol(r, 0, int);
+					this.ledRow(0, r, int);
+					0.02.wait;
+				});
+			});
+			this.ledAll(0);
+		}).play;
 	}
 
 	whenReadyAction {
@@ -39,11 +55,7 @@ MonomeGrid : MonomeDevice {
 		this.tiltSet(0, 0);
 
 		r_key = OSCFunc.newMatching({ |msg, time, fromAddr, recvdOnPort|
-			this.keyHandler(
-				msg.at(1).asInt,
-				msg.at(2).asInt,
-				msg.at(3).asInt,
-				this);
+			this.keyHandler.value(msg.at(1).asInt, msg.at(2).asInt, msg.at(3).asInt, this);
 			}
 			, (prefix ++ "/grid/key").asSymbol
 			, oscHandler.server
@@ -51,14 +63,9 @@ MonomeGrid : MonomeDevice {
 			, nil);
 
 		r_tilt = OSCFunc.newMatching({ |msg, time, fromAddr, recvdOnPort|
-			this.tiltHandler(
-				msg.at(1).asInt,
-				msg.at(2).asFloat,
-				msg.at(3).asFloat,
-				msg.at(4).asFloat,
-				this);
+			this.tiltHandler.value(msg.at(1).asInt, msg.at(2).asFloat, msg.at(3).asFloat, msg.at(4).asFloat, this);
 			}
-			, '/monome/tilt' /* (prefix ++ "/tilt").asSymbol */
+			, (prefix ++ "/tilt").asSymbol
 			, oscHandler.server
 			, oscHandler.client.port
 			, nil);
@@ -67,16 +74,28 @@ MonomeGrid : MonomeDevice {
 		this.showReady;
 	}
 
-	// Overrides MonomeDevice.setSize(int) creates a new state array.
+	// Overrides MonomeDevice.setSize(int); creates a new state array.
 	setSize { |msg|
 		rows      = msg.at(1).asInt;
 		cols      = msg.at(2).asInt;
-		gridState = Array2D.new(rows, cols);
 		size      = rows * cols;
+
+		((size == 128) && ((rot == 90) || rot == 270)).if({
+			rows = msg.at(2).asInt;
+			cols = msg.at(1).asInt;
+		});
+
+		gridState = Int8Array.newClear(size); // Array2D.new(rows, cols);
 	}
 
-	updateGridState { |x, y, i|
-		gridState.put(x, y, i);
+	setGridState { |x, y, i|
+		/* Column-ordered */
+		gridState[(x * rows) + y] = i;
+	}
+
+	getGridState { |x, y|
+		/* Column-ordered */
+		^gridState[(x * rows) + y];
 	}
 
 	ledAll { |s|

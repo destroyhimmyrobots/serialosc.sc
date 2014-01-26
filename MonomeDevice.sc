@@ -8,7 +8,7 @@ MonomeDevice {
 	var <oscHandler;
 
 	/* Notes:
-	 * This class cannot be instantiated directly.
+	 * This class should not be instantiated directly.
 	 * A device's `destination port' is the port to which the device sends its messages.
 	 */
 

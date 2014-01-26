@@ -11,17 +11,14 @@ OSCHandler {
 		oscResponders = Set.new;
 	}
 
-	closeOSCResponders {
-		oscResponders.do({ |obj, i|
-			obj.clear;
-			obj.free;
-		});
+	empty {
+		oscResponders.do({ |r, i| r.disable; r.clear; r.free; });
 		oscResponders.makeEmpty;
 		/* oscResponders = Set.new; */
 	}
 
 	close {
-		this.closeOSCResponders;
+		this.empty;
 		server.disconnect;
 		client.disconnect;
 	}
@@ -43,7 +40,8 @@ OSCHandler {
 	}
 
 	addResponders { |argArray|
-		oscResponders.addAll(argArray);
+		/* addAll can return a new collection, so assign the result as well. */
+		oscResponders = oscResponders.addAll(argArray);
 	}
 
 	recv {

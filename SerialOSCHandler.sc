@@ -19,13 +19,10 @@ SerialOSCHandler {
 	size { ^devices.size; }
 
 	close {
-		devices.values.do({ |dev, i|
-			dev.close;
-		});
+		devices.values.do({ |dev, i| dev.close; });
+		devices.makeEmpty; /* devices = dictionary.new; */
 		oscHandler.close;
-		devices.makeEmpty;
-		/* devices = dictionary.new; */
-		(this.class.asString ++ ": closed all open devices.").postln;
+		(this.class.asString ++ ": all connections closed.").postln;
 	}
 
 	listDevices {

@@ -4,55 +4,72 @@
  */
 
 (
-var t = Task({
-	var d, g, keys;
+/* Set this before starting */
+var devID, t;
+devID = \m0001021;
+
+t = Task({
+	var devices, grid, newKeyFx;
 
 	/* Let's listen for monome devices! */
-	d = SerialOSCHandler.new;
-
-	/* How many devices were found? */
-	1.wait; d.size.postln;
+	devices = SerialOSCHandler.new;
 
 	/* Let me get a direct reference to a grid. */
-	1.wait;	g = d[\m0001021];
+	1.wait;	grid = devices[devID];
 
 	/* Tilt can be turned on and off. */
-	1.wait; g.tiltSet(0, 1);
-	1.wait; g.tiltSet(0, 0);
+	1.wait; "Tilt on. ".postln; grid.tiltSet(0, 1);
+	2.wait; grid.tiltSet(0, 0); "Tilt off.".postln;
 
 	/* If you press keys here, nothing useful will happen. */
-	5.wait;
+	"Press some keys.".postln;
 
 	/* Let's handle the keys in a new way.
-	* You should always have five arguments,
-	* just as below. */
-	keys = { |x, y, s, self|
+	* You should never change the arguments to this function
+	* without modifying the MonomeGrid class. */
+	newKeyFx = { |x, y, s, self|
 		/* A simple LED toggler. */
 
-		/* One important variable is the self-explanatory
-		* 2D array `gridState' */
-		var nextState = (self.gridState.at(x, y) == 0).asInt;
+		/* You must always use the `self' variable to reference
+		 * variables and functions in MonomeGrid and MonomeArc. */
+
+		/* One important variable is the self-explanatory `gridState' */
+		var nextState = (self.getGridState(x, y) == 0).asInt;
 
 		if(s != 0, {
 			/* Update the state like so. */
-			self.updateGridState(x, y, nextState);
-			/* LED functions can be found in MonomeGrid.sc near the bottom. */
-			self.ledSet(x, y, nextState);
+			self.setGridState(x, y, nextState);
+			/* LED functions can be found in MonomeGrid.sc near the bottom.
+ 			 * be sure to use `f.value(args)' notation with these handlers. */
+			self.ledHandler.value(x, y, nextState);
 		});
 	};
 
 	/* You can write a tilt handler or a
-	 * custom ledHandler in a similar fashion.
+	 * led handler in a similar fashion.
 	 * Maybe I will make examples later. */
-
-	/* Execute this, and then press some keys. */
-	g.keyHandler = keys;
+	5.wait; grid.keyHandler = newKeyFx;
+	"Try pressing keys now.".postln;
 
 	/* Before reinstantiating a new SerialOSCHandler,
 	* or before terminating your program, close the
 	* current SerialOSCHandler. */
-	5.wait; d.close;
+	5.wait; devices.close;
 });
 
 t.play;
 )
+
+(
+/* Let's listen for monome devices! */
+d = SerialOSCHandler.new;
+)
+/* Let me get a direct reference to a grid. */
+grid = d[\m0001021];
+grid.animation;
+grid.rot_(0);
+grid.ledSet(0, 9, 1);
+grid.ledSet(0, 9, 0);
+grid.gridState;
+
+grid.rows;
