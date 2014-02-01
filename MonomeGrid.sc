@@ -5,17 +5,24 @@
 
 MonomeGrid : MonomeDevice {
 	var <>keyHandler, <>tiltHandler, <>ledHandler;
-	var <rows, <cols, <gridState, <tiltHistory;
+	var <rows, <cols, <gridState, tiltSensors;
 
 	*new { arg argServer, argType, argKeyFx = nil, argTiltFx =  nil, argLEDFx = nil;
 		^super.new(argServer, argType).gridInit(argKeyFx, argTiltFx, argLEDFx);
 	}
 
 	gridInit { arg argKeyFx = nil, argTiltFx =  nil, argLEDFx = nil;
-		gridState = Int16Array(256); //Array2D.new(8, 8);
+		gridState      = Int16Array(256);
+		tiltSensors    = GridTiltSensors(1);
 
 		tiltHandler = (argTiltFx.isNil).if({
-			{ |id, pitch, roll, inv, o = nil| [id, pitch, roll, inv].postln; };
+			{ |id, pitch, roll, inv, o = nil|
+				(id > tiltSensors.activeSensors).if({
+					tiltSensors.addSensor;
+				});
+				tiltSensors.update(id, pitch, roll, inv);
+				tiltSensors.readSensor(id).postln;
+			};
 		}, { argTiltFx; });
 
 		ledHandler = (argLEDFx.isNil).if({
@@ -101,6 +108,10 @@ MonomeGrid : MonomeDevice {
 	getGridState { |x, y|
 		/* Column-ordered */
 		^gridState[(x * rows) + y];
+	}
+
+	getTiltState { |sensorID = 0|
+		^tiltSensors.readSensor(sensorID);
 	}
 
 	ledAll { |s|
