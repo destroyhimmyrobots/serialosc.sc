@@ -20,7 +20,7 @@ GridTiltSensors {
 	}
 
 	activeSensors {
-		^invSensors.length;
+		^invSensors.size;
 	}
 
 	updateSensor { |sensor, pitch, roll, inv|

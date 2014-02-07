@@ -19,7 +19,6 @@ OSCHandler {
 	empty {
 		oscResponders.do({ |r, i| r.disable; r.clear; r.free; });
 		oscResponders.makeEmpty;
-		/* oscResponders = Set.new; */
 	}
 
 	close {
@@ -60,6 +59,8 @@ OSCHandler {
 	}
 
 	printOn { arg stream;
-		stream << "OSCHandler(server: " << server.asString << ", client: " << client.asString << ")" /* << "\n" << oscResponders.asString << "\n\n" */;
+		stream << "OSCHandler(server: " << server.asString
+		<< ", client: " << client.asString
+		<< ", r: " << oscResponders.asString << ")";
 	}
 }

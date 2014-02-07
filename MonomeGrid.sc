@@ -23,7 +23,12 @@ MonomeGrid : MonomeDevice {
 				tiltSensors.update(id, pitch, roll, inv);
 				tiltSensors.readSensor(id).postln;
 			};
-		}, { argTiltFx; });
+		}, {
+				/* Adding new sensors automatically should be internal. */
+				(id > tiltSensors.activeSensors).if({
+					tiltSensors.addSensor;
+				});
+				argTiltFx; });
 
 		ledHandler = (argLEDFx.isNil).if({
 			{ |x, y, s, o = nil| this.ledSet(x, y, s); };
@@ -69,7 +74,7 @@ MonomeGrid : MonomeDevice {
 		r_key = OSCFunc.newMatching({ |msg, time, fromAddr, recvdOnPort|
 			this.keyHandler.value(msg.at(1).asInt, msg.at(2).asInt, msg.at(3).asInt, this);
 			}
-			, (prefix ++ "/grid/key").asSymbol
+			, this.makeOSCpath("/grid/key").asSymbol
 			, oscHandler.server
 			, oscHandler.client.port
 			, nil);
@@ -77,7 +82,7 @@ MonomeGrid : MonomeDevice {
 		r_tilt = OSCFunc.newMatching({ |msg, time, fromAddr, recvdOnPort|
 			this.tiltHandler.value(msg.at(1).asInt, msg.at(2).asFloat, msg.at(3).asFloat, msg.at(4).asFloat, this);
 			}
-			, (prefix ++ "/tilt").asSymbol
+			, this.makeOSCpath("/tilt").asSymbol
 			, oscHandler.server
 			, oscHandler.client.port
 			, nil);
