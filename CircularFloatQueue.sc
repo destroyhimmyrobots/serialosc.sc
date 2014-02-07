@@ -20,6 +20,10 @@ CircularFloatQueue {
 		this.clear;
 	}
 
+	size {
+		^fa.size;
+	}
+
 	getNextE {
 		var e = nextE;
 
@@ -52,6 +56,6 @@ CircularFloatQueue {
 	}
 
 	printOn { |stream|
-		stream << "CircularFloatQueue(e@" << nextE << ", d@" << nextD << ", fa: " << fa << ")";
+		stream << "CircularFloatQueue(s: " << fa.size << ", e@" << nextE << ", d@" << nextD << ", fa: " << fa << ")";
 	}
 }
