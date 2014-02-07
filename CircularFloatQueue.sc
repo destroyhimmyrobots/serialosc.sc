@@ -50,4 +50,8 @@ CircularFloatQueue {
 	dequeue {
 		^fa.wrapAt(this.getNextD);
 	}
+
+	printOn { |stream|
+		stream << "CircularFloatQueue(e@" << nextE << ", d@" << nextD << ", fa: " << fa << ")";
+	}
 }

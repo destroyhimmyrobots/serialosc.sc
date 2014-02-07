@@ -12,22 +12,17 @@ MonomeGrid : MonomeDevice {
 	}
 
 	gridInit { arg argKeyFx = nil, argTiltFx =  nil, argLEDFx = nil;
-		gridState      = Int16Array(256);
-		tiltSensors    = GridTiltSensors(1);
+		gridState      =   Int16Array(256);
+		tiltSensors    = [ GridTiltSensor.new ];
 
 		tiltHandler = (argTiltFx.isNil).if({
 			{ |id, pitch, roll, inv, o = nil|
-				(id > tiltSensors.activeSensors).if({
-					tiltSensors.addSensor;
-				});
-				tiltSensors.update(id, pitch, roll, inv);
-				tiltSensors.readSensor(id).postln;
+				this.checkTiltSensor(id);
+				tiltSensors.at(id).updateSensor(pitch, roll, inv);
+				(["Pitch: ", "Roll: ", "Inversion: "] +++ tiltSensors.at(id).readSensor).postln;
 			};
-		}, {
-				/* Adding new sensors automatically should be internal. */
-				(id > tiltSensors.activeSensors).if({
-					tiltSensors.addSensor;
-				});
+		}, { /* Adding new sensors automatically is an internal operation. */
+				this.checkTiltSensor(id);
 				argTiltFx; });
 
 		ledHandler = (argLEDFx.isNil).if({
@@ -113,6 +108,10 @@ MonomeGrid : MonomeDevice {
 	getGridState { |x, y|
 		/* Column-ordered */
 		^gridState[(x * rows) + y];
+	}
+
+	checkTiltSensor { |id|
+		(id > tiltSensors.size).if({tiltSensors.add(GridTiltSensor.new);});
 	}
 
 	getTiltState { |sensorID = 0|
